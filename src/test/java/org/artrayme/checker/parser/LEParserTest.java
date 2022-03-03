@@ -2,8 +2,8 @@ package org.artrayme.checker.parser;
 
 import org.artrayme.checker.exceptions.InvalidAtomicExpressionSyntaxException;
 import org.artrayme.checker.exceptions.InvalidBracketsException;
+import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
-import org.artrayme.checker.exceptions.invalidOperatorException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LEParserTest {
@@ -23,9 +24,9 @@ class LEParserTest {
         return Stream.of(
                 Arguments.of("(A∧B)", Optional.empty()),
                 Arguments.of("(A∧(B∧C))", Optional.empty()),
-                Arguments.of("(A1∨B2)", Optional.empty()),
-                Arguments.of("(¬C3)", Optional.empty()),
-                Arguments.of(")(∧∨¬ABC)012", Optional.empty()),
+                Arguments.of("(A∨B)", Optional.empty()),
+                Arguments.of("(¬C)", Optional.empty()),
+                Arguments.of(")(∧∨¬ABC)", Optional.empty()),
                 Arguments.of("a", Optional.of('a')),
                 Arguments.of("(A∧b∧c)", Optional.of('b')),
                 Arguments.of("-", Optional.of('-'))
@@ -47,12 +48,12 @@ class LEParserTest {
             "(()()()),true"
     })
     void checkBracketsValidity(String expression, boolean result) {
-        assertEquals(result, LEParser.checkBrackets(expression));
+        assertEquals(result, LEParser.checkBrackets(expression) != -1);
     }
 
     @Test
     void checkBracketsMethod() {
-        assertTrue(LEParser.checkBrackets(""));
+        assertTrue(LEParser.checkBrackets("") != -1);
     }
 
     @ParameterizedTest()
@@ -68,8 +69,8 @@ class LEParserTest {
             "A0,false",
             "A01,false",
             "B,true",
-            "B1,true",
-            "B123,true",
+            "B1,false",
+            "B123,false",
             "B123A,false",
             "-,false",
             "0,false"
@@ -84,52 +85,66 @@ class LEParserTest {
     }
 
     @Test
-    void testValueOf1() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(A∧B)");
-        System.out.println(tree);
+    void testValueOf1() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
+        LEParser.valueOf("(A∧B)");
     }
 
     @Test
-    void testValueOf2() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(C∧(A∨B))");
-        System.out.println(tree);
+    void testValueOf2() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
+        LEParser.valueOf("(C∧(A∨B))");
     }
 
     @Test
-    void testValueOf3() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(C∨(¬A))");
-        System.out.println(tree);
+    void testValueOf3() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
+        LEParser.valueOf("(C∨(¬A))");
     }
 
     @Test
-    void testValueOf4() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(C∨(¬A1234))");
-        System.out.println(tree);
+    void testValueOf4() {
+        assertThrows(InvalidSyntaxCharacterException.class, () -> {
+            LEParser.valueOf("(C∨(¬A1234))");
+        });
     }
 
     @Test
-    void testValueOf5() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("((A∨B))");
-        System.out.println(tree);
+    void testValueOf5() {
+        assertThrows(InvalidOperatorException.class, () -> {
+            LEParser.valueOf("((A∨B))");
+        });
+
     }
 
     @Test
-    void testValueOf6() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(¬AA)");
-        System.out.println(tree);
+    void testValueOf6() {
+        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
+            LEParser.valueOf("(¬AA)");
+        });
     }
 
     @Test
-    void testValueOf7() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("((A~¬A)∨(¬B))");
-        System.out.println(tree);
+    void testValueOf7() {
+        assertThrows(InvalidOperatorException.class, () -> {
+            LEParser.valueOf("((A~¬A)∨(¬B))");
+        });
     }
 
 
     @Test
-    void testValueOf8() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, invalidOperatorException {
-        var tree = LEParser.valueOf("(()∧())");
-        System.out.println(tree);
+    void testValueOf8() {
+        InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
+            LEParser.valueOf("((A~¬A)∨(¬B))");
+        });
+
+        assertEquals("~¬", invalidOperatorException.getInvalidOperator());
+    }
+
+    @Test
+    void testValueOf9() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
+            LEParser.valueOf("((A∧B)∧((C∨)¬D))");
+        });
+
+        assertEquals("¬", invalidOperatorException.getInvalidOperator());
     }
 
 }

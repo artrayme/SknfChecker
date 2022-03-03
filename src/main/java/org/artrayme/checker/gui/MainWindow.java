@@ -3,7 +3,7 @@ package org.artrayme.checker.gui;
 import org.artrayme.checker.exceptions.InvalidAtomicExpressionSyntaxException;
 import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
-import org.artrayme.checker.exceptions.invalidOperatorException;
+import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.parser.LEParser;
 
 import javax.swing.JButton;
@@ -153,16 +153,16 @@ public class MainWindow extends JFrame {
                 bracketsValidityStatusLabel.setText("No");
             } catch (InvalidSyntaxCharacterException e) {
                 bracketsValidityStatusLabel.setText("Yes");
-                syntaxValidityStatusLabel.setText("No");
+                syntaxValidityStatusLabel.setText("No -- " + e.getInvalidCharacter());
             } catch (InvalidAtomicExpressionSyntaxException e) {
                 bracketsValidityStatusLabel.setText("Yes");
                 syntaxValidityStatusLabel.setText("Yes");
-                atomicSyntaxValidityStatusLabel.setText("No");
-            } catch (invalidOperatorException e) {
+                atomicSyntaxValidityStatusLabel.setText("No -- " + e.getExpression());
+            } catch (InvalidOperatorException e) {
                 bracketsValidityStatusLabel.setText("Yes");
                 syntaxValidityStatusLabel.setText("Yes");
                 atomicSyntaxValidityStatusLabel.setText("Yes");
-                operatorSyntaxValidityStatusLabel.setText("No");
+                operatorSyntaxValidityStatusLabel.setText("No -- " + e.getInvalidOperator());
             }
         }
     }
