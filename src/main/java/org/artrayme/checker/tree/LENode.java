@@ -1,11 +1,12 @@
 package org.artrayme.checker.tree;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 
 public class LENode {
     private final String expression;
-    private BiPredicate<LENode, LENode> operator;
+    private BiPredicate<Boolean, Boolean> operator;
     private char operatorSymbol;
     private LENode leftChild;
     private LENode rightChild;
@@ -30,7 +31,7 @@ public class LENode {
         this.rightChild = rightChild;
     }
 
-    public BiPredicate<LENode, LENode> getOperator() {
+    public BiPredicate<Boolean, Boolean> getOperator() {
         return operator;
     }
 
@@ -38,7 +39,7 @@ public class LENode {
         return operatorSymbol;
     }
 
-    public void setOperator(BiPredicate<LENode, LENode> operator, char operatorSymbol) {
+    public void setOperator(BiPredicate<Boolean, Boolean> operator, char operatorSymbol) {
         this.operator = operator;
         this.operatorSymbol = operatorSymbol;
     }
@@ -51,8 +52,22 @@ public class LENode {
         if (rightChild == null)
             return parameters.get(expression);
         else {
-            return operator.test(leftChild, rightChild);
+            return operator.test(leftChild.calcValue(parameters), rightChild.calcValue(parameters));
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        LENode node = (LENode) o;
+        return Objects.equals(expression, node.expression);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(expression);
+    }
 }

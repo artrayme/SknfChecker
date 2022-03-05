@@ -12,14 +12,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+import static org.artrayme.checker.parser.Constants.CLOSE_BRACKET;
+import static org.artrayme.checker.parser.Constants.CONJUNCTION;
+import static org.artrayme.checker.parser.Constants.DISJUNCTION;
+import static org.artrayme.checker.parser.Constants.EQUALITY;
+import static org.artrayme.checker.parser.Constants.IMPLICIT;
+import static org.artrayme.checker.parser.Constants.NEGATION;
+import static org.artrayme.checker.parser.Constants.OPEN_BRACKET;
+
 public class LEParser {
-    private static final char OPEN_BRACKET = '(';
-    private static final char CLOSE_BRACKET = ')';
-    private static final char CONJUNCTION = '∧';
-    private static final char DISJUNCTION = '∨';
-    private static final char NEGATION = '¬';
-    private static final char EQUALITY = '~';
-    private static final char IMPLICIT = '→';
+
 
     private LEParser() {
     }
@@ -64,19 +66,16 @@ public class LEParser {
         if (counter != 0) {
             return -1;
         }
+
         return maxDepth;
     }
 
     public static Optional<Character> checkSymbolsValidity(String expression) {
         for (char c : expression.toCharArray()) {
             if ((c < 'A' || c > 'Z')
-                    //                    && (c < '0' || c > '9')
+                    && !isOperatorSymbol(c)
                     && c != OPEN_BRACKET
                     && c != CLOSE_BRACKET
-                    && c != CONJUNCTION
-                    && c != DISJUNCTION
-                    && c != NEGATION
-                    && c != EQUALITY
             ) {
                 return Optional.of(c);
             }
@@ -90,7 +89,15 @@ public class LEParser {
         return expression.charAt(0) >= 'A' && expression.charAt(0) <= 'Z';
     }
 
-    private LENode parseRecursive(String expressionPart) throws InvalidAtomicExpressionSyntaxException, InvalidOperatorException {
+    private static boolean isOperatorSymbol(Character symbol) {
+        return symbol == CONJUNCTION
+                || symbol == DISJUNCTION
+                || symbol == NEGATION
+                || symbol == EQUALITY
+                || symbol == IMPLICIT;
+    }
+
+    private LENode parseRecursive(String expressionPart) throws InvalidAtomicExpressionSyntaxException, InvalidOperatorException, InvalidBracketsException {
         if (expressionPart.isEmpty())
             throw new InvalidAtomicExpressionSyntaxException(expressionPart);
         if (expressionPart.charAt(0) != OPEN_BRACKET) {
@@ -103,7 +110,6 @@ public class LEParser {
             throw new InvalidAtomicExpressionSyntaxException(expressionPart);
 
         LENode node = new LENode(expressionPart);
-        int index = 0;
         if (expressionPart.charAt(1) == NEGATION) {
             node.setOperator(convertToOperator(NEGATION), NEGATION);
             node.setRightChild(parseRecursive(expressionPart.substring(2, expressionPart.length() - 1)));
@@ -131,11 +137,11 @@ public class LEParser {
         if (!checkAtomicSyntax(firstPart)) {
             throw new InvalidAtomicExpressionSyntaxException(firstPart);
         }
-        String operator = getPartByRule(index, expressionPart, e -> e < 'A' || e > 'Z');
+        String operator = getPartByRule(index, expressionPart, e -> (e < 'A' || e > 'Z') && e != NEGATION);
         if (operator.length() > 1)
             throw new InvalidOperatorException(operator);
 
-//        String secondPart = getPartByRule(index, expressionPart, e -> e >= 'A' && e <= 'Z');
+        //        String secondPart = getPartByRule(index, expressionPart, e -> e >= 'A' && e <= 'Z');
 
         if (index.get() >= expressionPart.length())
             throw new InvalidOperatorException(expressionPart);
@@ -145,14 +151,12 @@ public class LEParser {
             throw new InvalidAtomicExpressionSyntaxException(secondPart);
         }
 
-
-
         node.setLeftChild(new LENode(firstPart));
         node.setOperator(convertToOperator(operator.charAt(0)), operator.charAt(0));
         node.setRightChild(new LENode(secondPart));
     }
 
-    private void deepExpression(String expressionPart, LENode node) throws InvalidOperatorException, InvalidAtomicExpressionSyntaxException {
+    private void deepExpression(String expressionPart, LENode node) throws InvalidOperatorException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
         LEParsedEntity entity = splitExpression(expressionPart.substring(1, expressionPart.length() - 1));
         if (entity.getOperator().length() != 1)
             throw new InvalidOperatorException(entity.getOperator());
@@ -161,7 +165,7 @@ public class LEParser {
         node.setRightChild(parseRecursive(entity.getSecondPart()));
     }
 
-    private LEParsedEntity splitExpression(String expression) throws InvalidOperatorException {
+    private LEParsedEntity splitExpression(String expression) throws InvalidOperatorException, InvalidBracketsException {
         LEParsedEntity result = new LEParsedEntity();
         StringBuilder operator = new StringBuilder();
         AtomicInteger index = new AtomicInteger(0);
@@ -171,9 +175,11 @@ public class LEParser {
         if (expression.charAt(index.get()) == NEGATION)
             throw new InvalidOperatorException(NEGATION);
 
-        while (expression.charAt(index.get()) != OPEN_BRACKET) {
+        while (LEParser.isOperatorSymbol(expression.charAt(index.get()))) {
             operator.append(expression.charAt(index.get()));
             index.incrementAndGet();
+            if (index.get() == expression.length())
+                throw new InvalidOperatorException(expression);
         }
         result.setOperator(operator.toString());
 
@@ -181,7 +187,7 @@ public class LEParser {
         return result;
     }
 
-    private String extractExpressionPart(String expression, AtomicInteger index) {
+    private String extractExpressionPart(String expression, AtomicInteger index) throws InvalidBracketsException {
         int counter = 0;
         StringBuilder part = new StringBuilder();
         do {
@@ -192,17 +198,19 @@ public class LEParser {
                 counter--;
             part.append(c);
             index.incrementAndGet();
+            if (counter < 0)
+                throw new InvalidBracketsException();
         } while (counter != 0);
         return part.toString();
     }
 
-    private BiPredicate<LENode, LENode> convertToOperator(Character sign) throws InvalidOperatorException {
+    private BiPredicate<Boolean, Boolean> convertToOperator(Character sign) throws InvalidOperatorException {
         return switch (sign) {
-            case CONJUNCTION -> (a, b) -> a.calcValue(null) && b.calcValue(null);
-            case DISJUNCTION -> (a, b) -> a.calcValue(null) || b.calcValue(null);
-            case EQUALITY -> (a, b) -> a.calcValue(null) == b.calcValue(null);
-            case NEGATION -> (a, b) -> !b.calcValue(null);
-            case IMPLICIT -> (a, b) -> (!a.calcValue(null)) || b.calcValue(null);
+            case CONJUNCTION -> (a, b) -> a && b;
+            case DISJUNCTION -> (a, b) -> a || b;
+            case EQUALITY -> (a, b) -> a == b;
+            case NEGATION -> (a, b) -> !b;
+            case IMPLICIT -> (a, b) -> (!a) || b;
             default -> throw new InvalidOperatorException(sign);
         };
     }
