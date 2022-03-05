@@ -123,7 +123,7 @@ class LEParserTest {
 
     @Test
     void testValueOf7() {
-        assertThrows(InvalidOperatorException.class, () -> {
+        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
             LEParser.valueOf("((A~¬A)∨(¬B))");
         });
     }
@@ -131,20 +131,49 @@ class LEParserTest {
 
     @Test
     void testValueOf8() {
-        InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
+        InvalidAtomicExpressionSyntaxException invalidOperatorException = assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
             LEParser.valueOf("((A~¬A)∨(¬B))");
         });
 
-        assertEquals("~¬", invalidOperatorException.getInvalidOperator());
     }
 
     @Test
-    void testValueOf9() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    void testValueOf9() {
         InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
             LEParser.valueOf("((A∧B)∧((C∨)¬D))");
         });
 
         assertEquals("¬", invalidOperatorException.getInvalidOperator());
+    }
+
+    @Test
+    void testValueOf10() {
+        InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
+            LEParser.valueOf("((A~A~A))");
+        });
+
+    }
+
+    @Test
+    void testValueOf11() {
+        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
+            LEParser.valueOf("((A¬A)∨(¬B))");
+        });
+
+    }
+
+    @Test
+    void testValueOf12() {
+        assertThrows(InvalidBracketsException.class, () -> {
+            LEParser.valueOf("((¬()∨)∧())");
+        });
+
+    }
+
+    @Test
+    void testValueOf13() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        LEParser.valueOf("((A∨((¬B)∨C))∧(A∨(B∨C)))");
+
     }
 
 }
