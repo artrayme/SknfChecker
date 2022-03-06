@@ -77,6 +77,13 @@ class SknfUtilTest {
         assertTrue(isSknf);
     }
 
+    @Test
+    void checkSknf6() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        LETree expression = LEParser.valueOf("(1∧1)");
+        boolean isSknf = SknfUtil.isSknf(expression);
+        assertFalse(isSknf);
+    }
+
 //    @Test
 //    void createSknf2() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
 //        LETree expression = LEParser.valueOf("(((¬A)∨(B∨C))∧((A∨C)∨(¬B)))");
