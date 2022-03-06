@@ -1,5 +1,11 @@
 package org.artrayme.checker.parser;
 
+////////////////////////////////////////////
+//Лабораторная работа №1-2 по дисциплине ЛОИС
+//Выполнено студентом группы 921703
+//Василевский Артемий Дмитриевич
+//Использованные источники:
+//1) Справочно система по дисциплине ЛОИС
 import org.artrayme.checker.exceptions.InvalidAtomicExpressionSyntaxException;
 import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;

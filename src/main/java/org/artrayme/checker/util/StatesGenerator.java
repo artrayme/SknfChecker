@@ -4,6 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+////////////////////////////////////////////
+//Лабораторная работа №1-2 по дисциплине ЛОИС
+//Выполнено студентом группы 921703
+//Василевский Артемий Дмитриевич
+//Использованные источники:
+//1) Справочно система по дисциплине ЛОИС
 class StatesGenerator {
     private int currentState = 0;
 

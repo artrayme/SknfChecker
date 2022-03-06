@@ -4,6 +4,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
+////////////////////////////////////////////
+//Лабораторная работа №1-2 по дисциплине ЛОИС
+//Выполнено студентом группы 921703
+//Василевский Артемий Дмитриевич
+//Использованные источники:
+//1) Справочно система по дисциплине ЛОИС
 public class LENode {
     private final String expression;
     private BiPredicate<Boolean, Boolean> operator;

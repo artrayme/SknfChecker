@@ -11,6 +11,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+////////////////////////////////////////////
+//Лабораторная работа №1-2 по дисциплине ЛОИС
+//Выполнено студентом группы 921703
+//Василевский Артемий Дмитриевич
+//Использованные источники:
+//1) Справочно система по дисциплине ЛОИС
 class SknfUtilTest {
 
     @Test

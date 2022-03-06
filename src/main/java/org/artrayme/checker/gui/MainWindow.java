@@ -2,8 +2,8 @@ package org.artrayme.checker.gui;
 
 import org.artrayme.checker.exceptions.InvalidAtomicExpressionSyntaxException;
 import org.artrayme.checker.exceptions.InvalidBracketsException;
-import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;
+import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.parser.LEParser;
 import org.artrayme.checker.tree.LETree;
 import org.artrayme.checker.util.SknfUtil;
@@ -19,6 +19,13 @@ import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
+
+////////////////////////////////////////////
+//Лабораторная работа №1-2 по дисциплине ЛОИС
+//Выполнено студентом группы 921703
+//Василевский Артемий Дмитриевич
+//Использованные источники:
+//1) Справочно система по дисциплине ЛОИС
 
 public class MainWindow extends JFrame {
 
@@ -151,9 +158,9 @@ public class MainWindow extends JFrame {
             try {
                 LETree expressionTree = LEParser.valueOf(expressionField.getText());
                 setAllLEValidityStatus("Yes");
-                if(SknfUtil.isSknf(expressionTree)){
+                if (SknfUtil.isSknf(expressionTree)) {
                     sknfValidityStatusLabel.setText("Yes");
-                } else{
+                } else {
                     sknfValidityStatusLabel.setText("No");
                 }
 
