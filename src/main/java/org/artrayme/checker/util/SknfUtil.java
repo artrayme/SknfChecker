@@ -66,10 +66,10 @@ public class SknfUtil {
         List<List<LENode>> disjunctionParts = new ArrayList<>();
         for (int i = 0; i < conjunctionParts.size(); i++) {
             List<LENode> currentDisjunctionPart = getDisjunctionParts(conjunctionParts.get(i));
-            //            for (LENode node : currentDisjunctionPart) {
-            //                if (!checkIsDisjunctionFlat(node))
-            //                    return false;
-            //            }
+            for (LENode node : currentDisjunctionPart) {
+                if (!checkIsDisjunctionFlat(node))
+                    return false;
+            }
 
             disjunctionParts.add(currentDisjunctionPart);
         }
@@ -78,26 +78,27 @@ public class SknfUtil {
 
     private static boolean checkIsDisjunctionFlat(LENode node) {
         if (node.getLeftChild() == null || node.getRightChild() == null)
-            return false;
+            return true;
         if (node.getLeftChild().getOperatorSymbol() == Constants.NEGATION
-                && node.getLeftChild().getRightChild().getOperatorSymbol() != ' ')
-            return false;
+                && node.getLeftChild().getRightChild().getOperatorSymbol() != '\u0000')
+            return true;
         if (node.getRightChild().getOperatorSymbol() == Constants.NEGATION
-                && node.getRightChild().getRightChild().getOperatorSymbol() != ' ')
-            return false;
-        return true;
+                && node.getRightChild().getRightChild().getOperatorSymbol() != '\u0000')
+            return true;
+        return false;
     }
 
     private static boolean checkDisjunctionDuplicates(List<List<LENode>> disjunctions) {
         var uniqDisjunctions = disjunctions
                 .stream()
                 .map(e -> e.stream()
-                        .map(node -> String.valueOf(node.getOperatorSymbol()))
+                        .map(node -> String.valueOf(node.getExpression()))
                         .sorted()
                         .reduce((a, b) -> a + b))
                 .filter(Optional::isPresent)
-                .distinct();
-        return uniqDisjunctions.toList().size() == disjunctions.size();
+                .distinct()
+                .toList();
+        return uniqDisjunctions.size() == disjunctions.size();
     }
 
     private static List<LENode> getConjunctionParts(LENode expression) {
