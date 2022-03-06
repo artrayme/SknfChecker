@@ -47,6 +47,7 @@ class SknfUtilTest {
         LETree expression = LEParser.valueOf("(1∧((A∧C)∧(A∨(B∨D))))");
         LETree result = SknfUtil.createSknf(expression);
         boolean isSknf = SknfUtil.isSknf(result);
+        assertTrue(isSknf);
     }
 
     @Test
@@ -84,11 +85,13 @@ class SknfUtilTest {
         assertFalse(isSknf);
     }
 
-//    @Test
-//    void createSknf2() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-//        LETree expression = LEParser.valueOf("(((¬A)∨(B∨C))∧((A∨C)∨(¬B)))");
-//        SknfUtil.createSknf(expression);
-//
-//    }
+    @Test
+    void checkSknf14() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        LETree expression = LEParser.valueOf("((A∧C)∧(A∨(B∨D)))");
+        for (int i = 0; i < 5; i++) {
+            expression = SknfUtil.createSknf(expression);
+            assertTrue(SknfUtil.isSknf(expression));
+        }
+    }
 
 }
