@@ -5,6 +5,8 @@ import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.parser.LEParser;
+import org.artrayme.checker.tree.LETree;
+import org.artrayme.checker.util.SknfUtil;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -147,8 +149,14 @@ public class MainWindow extends JFrame {
             if (expressionField.getText().isEmpty())
                 return;
             try {
-                LEParser.valueOf(expressionField.getText());
+                LETree expressionTree = LEParser.valueOf(expressionField.getText());
                 setAllLEValidityStatus("Yes");
+                if(SknfUtil.isSknf(expressionTree)){
+                    sknfValidityStatusLabel.setText("Yes");
+                } else{
+                    sknfValidityStatusLabel.setText("No");
+                }
+
             } catch (InvalidBracketsException e) {
                 bracketsValidityStatusLabel.setText("No");
             } catch (InvalidSyntaxCharacterException e) {

@@ -32,12 +32,17 @@ public class SknfUtil {
             for (int j = 0; j < leaves.size(); j++) {
                 values.put(leaves.get(j).getExpression(), states.get(j));
             }
+            values.put(String.valueOf(Constants.TRUE), true);
+            values.put(String.valueOf(Constants.FALSE), false);
             boolean expressionResult = expression.getRoot().calcValue(values);
             if (expressionResult)
                 result.add(values);
             states = generator.incrementAndGet();
         }
-        return LEParser.valueOf(generateSknfExpressionByTruthTable(result));
+        String resultExpression = generateSknfExpressionByTruthTable(result);
+        if (resultExpression.isEmpty())
+            return new LETree(new LENode(""));
+        return LEParser.valueOf(resultExpression);
     }
 
     public static boolean isSknf(LETree expression) {
@@ -48,17 +53,16 @@ public class SknfUtil {
         for (LENode part : conjunctionParts) {
             List<LENode> partLeaves = new ArrayList<>();
             recursivelyIteration(part, partLeaves);
-            partLeaves = partLeaves.stream().distinct().toList();
             if (leaves.size() != partLeaves.size())
                 return false;
         }
         List<List<LENode>> disjunctionParts = new ArrayList<>();
         for (int i = 0; i < conjunctionParts.size(); i++) {
             List<LENode> currentDisjunctionPart = getDisjunctionParts(conjunctionParts.get(i));
-//            for (LENode node : currentDisjunctionPart) {
-//                if (!checkIsDisjunctionFlat(node))
-//                    return false;
-//            }
+            //            for (LENode node : currentDisjunctionPart) {
+            //                if (!checkIsDisjunctionFlat(node))
+            //                    return false;
+            //            }
 
             disjunctionParts.add(currentDisjunctionPart);
         }
@@ -83,7 +87,7 @@ public class SknfUtil {
                 .map(e -> e.stream()
                         .map(node -> String.valueOf(node.getOperatorSymbol()))
                         .sorted()
-                        .reduce((a, b) -> a+b)
+                        .reduce((a, b) -> a + b)
                         .get())
                 .distinct();
         return uniqDisjunctions.toList().size() == disjunctions.size();
@@ -102,21 +106,29 @@ public class SknfUtil {
     }
 
     private static void recAddLeavesForThisOperatorToList(List<LENode> nodes, LENode currentNode, Character operator) {
-        if (currentNode.getLeftChild().getOperatorSymbol() == operator) {
-            recAddLeavesForThisOperatorToList(nodes, currentNode.getLeftChild(), operator);
-            return;
-        } else {
-            nodes.add(currentNode.getLeftChild());
+        if (currentNode.getLeftChild() != null) {
+            if (currentNode.getLeftChild().getOperatorSymbol() == operator) {
+                recAddLeavesForThisOperatorToList(nodes, currentNode.getLeftChild(), operator);
+                return;
+            } else {
+                nodes.add(currentNode.getLeftChild());
+            }
         }
-        if (currentNode.getRightChild().getOperatorSymbol() == operator) {
-            recAddLeavesForThisOperatorToList(nodes, currentNode.getRightChild(), operator);
-        } else {
-            nodes.add(currentNode.getRightChild());
+        if (currentNode.getRightChild() != null) {
+            if (currentNode.getRightChild().getOperatorSymbol() == operator) {
+                recAddLeavesForThisOperatorToList(nodes, currentNode.getRightChild(), operator);
+            } else {
+                nodes.add(currentNode.getRightChild());
+            }
         }
     }
 
     private static void recursivelyIteration(LENode node, Collection<LENode> leaves) {
-        if (node.getLeftChild() == null && node.getRightChild() == null)
+        if (node.getLeftChild() == null
+                && node.getRightChild() == null
+                && !node.getExpression().isEmpty()
+                && node.getExpression().charAt(0) != Constants.TRUE
+                && node.getExpression().charAt(0) != Constants.FALSE)
             leaves.add(node);
 
         if (node.getLeftChild() != null)
@@ -130,7 +142,8 @@ public class SknfUtil {
         for (Map<String, Boolean> truthExpression : table) {
             List<Map.Entry<String, Boolean>> someLists = new ArrayList<>();
             truthExpression.forEach((k, v) -> {
-                someLists.add(new AbstractMap.SimpleImmutableEntry<>(k, v));
+                if (k.charAt(0) != Constants.TRUE && k.charAt(0) != Constants.FALSE)
+                    someLists.add(new AbstractMap.SimpleImmutableEntry<>(k, v));
             });
             String part = recursivelyDisjunctionBracketsEncapsulation(someLists);
             listOfConjunctionParts.add(part);
@@ -155,7 +168,7 @@ public class SknfUtil {
         } else if (part.size() == 1) {
             return part.get(0);
         }
-        throw new RuntimeException("recursivelyBracketsEncapsulation -- something wrong");
+        return "";
     }
 
     private static String recursivelyDisjunctionBracketsEncapsulation(List<Map.Entry<String, Boolean>> stringBooleanMap) {

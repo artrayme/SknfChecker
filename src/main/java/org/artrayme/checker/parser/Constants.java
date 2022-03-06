@@ -8,4 +8,6 @@ public class Constants {
     public static final char NEGATION = '¬';
     public static final char EQUALITY = '~';
     public static final char IMPLICIT = '→';
+    public static final char TRUE = '1';
+    public static final char FALSE = '0';
 }

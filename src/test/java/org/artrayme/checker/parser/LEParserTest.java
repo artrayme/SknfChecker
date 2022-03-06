@@ -9,10 +9,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -73,7 +75,7 @@ class LEParserTest {
             "B123,false",
             "B123A,false",
             "-,false",
-            "0,false"
+            "true,false"
     })
     void checkAtomicSyntax(String expression, boolean result) {
         assertEquals(result, LEParser.checkAtomicSyntax(expression));
@@ -84,82 +86,74 @@ class LEParserTest {
         assertFalse(LEParser.checkAtomicSyntax(""));
     }
 
-    @Test
-    void testValueOf1() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
-        LEParser.valueOf("(A∧B)");
-    }
-
-    @Test
-    void testValueOf2() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
-        LEParser.valueOf("(C∧(A∨B))");
-    }
-
-    @Test
-    void testValueOf3() throws InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException, InvalidOperatorException {
-        LEParser.valueOf("(C∨(¬A))");
-    }
-
-    @Test
-    void testValueOf4() {
-        assertThrows(InvalidSyntaxCharacterException.class, () -> {
-            LEParser.valueOf("(C∨(¬A1234))");
+    @ParameterizedTest
+    @CsvSource({
+            "(C∨(¬A1234)),2",
+            "(C∨(!A)),!"
+    })
+    void invalidSyntaxCharacterExceptionTest(String expression, Character invalidSyntaxCharacter) {
+        InvalidSyntaxCharacterException exception = assertThrows(InvalidSyntaxCharacterException.class, () -> {
+            LEParser.valueOf(expression);
         });
+        assertEquals(invalidSyntaxCharacter, exception.getInvalidCharacter());
     }
 
-    @Test
-    void testValueOf5() {
-        assertThrows(InvalidOperatorException.class, () -> {
-            LEParser.valueOf("((A∨B))");
-        });
-
-    }
-
-    @Test
-    void testValueOf6() {
-        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
-            LEParser.valueOf("(¬AA)");
-        });
-    }
-
-    @Test
-    void testValueOf7() {
-        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
-            LEParser.valueOf("((A~¬A)∨(¬B))");
-        });
-    }
-
-
-    @Test
-    void testValueOf8() {
+    @ParameterizedTest
+    @CsvSource(value = {
+            "((A~¬A)∨(¬B)),¬A",
+            "((A¬A)∨(¬B)),¬A",
+            "(¬AA),AA",
+            "(A~A~A),A~A",
+            "(~A),''",
+            "(~),''",
+            "(¬),''",
+            "((A∨¬A)~(¬B)),¬A"
+    })
+    void invalidAtomicExpressionSyntaxExceptionTest(String expression, String invalidAtomicExpression) {
         InvalidAtomicExpressionSyntaxException invalidOperatorException = assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
-            LEParser.valueOf("((A~¬A)∨(¬B))");
+            LEParser.valueOf(expression);
         });
-
+        assertEquals(invalidAtomicExpression, invalidOperatorException.getExpression());
     }
 
-    @Test
-    void testValueOf9() {
+    @ParameterizedTest
+    @CsvSource({
+            "((A∨B)),(A∨B)",
+            "((A∧B)∧((C∨)¬D)),¬",
+            "((A~A~A)),(A~A~A)",
+            "((¬C)¬B),¬",
+            "((A∨B)∧(B∨(¬A)¬)),¬"
+    })
+    void invalidOperatorExceptionTest(String expression, String invalidOperator) {
         InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
-            LEParser.valueOf("((A∧B)∧((C∨)¬D))");
+            LEParser.valueOf(expression);
         });
-
-        assertEquals("¬", invalidOperatorException.getInvalidOperator());
+        assertEquals(invalidOperator, invalidOperatorException.getInvalidOperator());
     }
 
-    @Test
-    void testValueOf10() {
-        InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
-            LEParser.valueOf("((A~A~A))");
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "(A∧B)",
+            "(C∧(A∨B))",
+            "(C∨(¬1))",
+            "((A∨((¬B)∨C))∧(A∨(B∨C)))",
+            "(¬A)",
+            "((A∧B)→B)",
+            "A",
+            "1",
+            "0",
+            "(¬((A∧B)→B))",
+            "((¬((A∧B)→B))~B)",
+            "(((¬((A∧B)→1))~0)∧(¬A))",
+            "(A~A)",
+            "(A→B)",
+            "(¬(¬A))",
+            "(A~(0~A))"
+    })
+    void validExpressions(String expression) {
+        assertDoesNotThrow(() -> {
+            LEParser.valueOf(expression);
         });
-
-    }
-
-    @Test
-    void testValueOf11() {
-        assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
-            LEParser.valueOf("((A¬A)∨(¬B))");
-        });
-
     }
 
     @Test
@@ -171,9 +165,16 @@ class LEParserTest {
     }
 
     @Test
-    void testValueOf13() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-        LEParser.valueOf("((A∨((¬B)∨C))∧(A∨(B∨C)))");
+    void testValueOf13() {
+        assertThrows(InvalidBracketsException.class, () -> {
+            LEParser.valueOf("A∨A");
+        });
 
     }
+
+//    @Test
+//    void temp() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+//                LEParser.valueOf();
+//    }
 
 }

@@ -27,8 +27,6 @@ public class LEParser {
     }
 
     public static LETree valueOf(String expression) throws InvalidBracketsException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidOperatorException {
-        if (expression.length() < 4)
-            throw new InvalidSyntaxCharacterException(' ');
         LEParser LEParser = new LEParser();
         if (checkBrackets(expression) == -1) {
             throw new InvalidBracketsException();
@@ -44,9 +42,6 @@ public class LEParser {
     public static int checkBrackets(String expression) {
         if (expression.isEmpty())
             return 0;
-        if (expression.charAt(0) != OPEN_BRACKET || expression.charAt(expression.length() - 1) != CLOSE_BRACKET) {
-            return -1;
-        }
 
         int maxDepth = 0;
         int counter = 0;
@@ -72,7 +67,7 @@ public class LEParser {
 
     public static Optional<Character> checkSymbolsValidity(String expression) {
         for (char c : expression.toCharArray()) {
-            if ((c < 'A' || c > 'Z')
+            if (!isAtomicExpressionSymbol(c)
                     && !isOperatorSymbol(c)
                     && c != OPEN_BRACKET
                     && c != CLOSE_BRACKET
@@ -86,7 +81,7 @@ public class LEParser {
     public static boolean checkAtomicSyntax(String expression) {
         if (expression.length() != 1)
             return false;
-        return expression.charAt(0) >= 'A' && expression.charAt(0) <= 'Z';
+        return isAtomicExpressionSymbol(expression.charAt(0));
     }
 
     private static boolean isOperatorSymbol(Character symbol) {
@@ -95,6 +90,10 @@ public class LEParser {
                 || symbol == NEGATION
                 || symbol == EQUALITY
                 || symbol == IMPLICIT;
+    }
+
+    private static boolean isAtomicExpressionSymbol(char symbol) {
+        return ((symbol >= 'A' && symbol <= 'Z') || symbol == Constants.TRUE || symbol == Constants.FALSE);
     }
 
     private LENode parseRecursive(String expressionPart) throws InvalidAtomicExpressionSyntaxException, InvalidOperatorException, InvalidBracketsException {
@@ -133,15 +132,13 @@ public class LEParser {
 
     private void flatExpression(String expressionPart, LENode node) throws InvalidOperatorException, InvalidAtomicExpressionSyntaxException {
         AtomicInteger index = new AtomicInteger();
-        String firstPart = getPartByRule(index, expressionPart, e -> e >= 'A' && e <= 'Z');
+        String firstPart = getPartByRule(index, expressionPart, LEParser::isAtomicExpressionSymbol);
         if (!checkAtomicSyntax(firstPart)) {
             throw new InvalidAtomicExpressionSyntaxException(firstPart);
         }
-        String operator = getPartByRule(index, expressionPart, e -> (e < 'A' || e > 'Z') && e != NEGATION);
+        String operator = getPartByRule(index, expressionPart, e -> !isAtomicExpressionSymbol(e) && e != NEGATION);
         if (operator.length() > 1)
             throw new InvalidOperatorException(operator);
-
-        //        String secondPart = getPartByRule(index, expressionPart, e -> e >= 'A' && e <= 'Z');
 
         if (index.get() >= expressionPart.length())
             throw new InvalidOperatorException(expressionPart);
@@ -184,6 +181,8 @@ public class LEParser {
         result.setOperator(operator.toString());
 
         result.setSecondPart(extractExpressionPart(expression, index));
+        if (!(result.getFirstPart() + result.getOperator() + result.getSecondPart()).equals(expression))
+            throw new InvalidOperatorException(expression.substring(index.get()));
         return result;
     }
 
