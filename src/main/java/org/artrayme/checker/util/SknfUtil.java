@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 ////////////////////////////////////////////
 //Лабораторная работа №1-2 по дисциплине ЛОИС
@@ -93,8 +94,8 @@ public class SknfUtil {
                 .map(e -> e.stream()
                         .map(node -> String.valueOf(node.getOperatorSymbol()))
                         .sorted()
-                        .reduce((a, b) -> a + b)
-                        .get())
+                        .reduce((a, b) -> a + b))
+                .filter(Optional::isPresent)
                 .distinct();
         return uniqDisjunctions.toList().size() == disjunctions.size();
     }
