@@ -55,11 +55,18 @@ public class LENode {
     }
 
     public boolean calcValue(Map<String, Boolean> parameters) {
-        if (rightChild == null)
+        if (leftChild == null && rightChild == null) {
             return parameters.get(expression);
-        else {
+        } else if (leftChild == null) {
+            return operator.test(null, rightChild.calcValue(parameters));
+        } else {
             return operator.test(leftChild.calcValue(parameters), rightChild.calcValue(parameters));
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(expression);
     }
 
     @Override
@@ -70,10 +77,5 @@ public class LENode {
             return false;
         LENode node = (LENode) o;
         return Objects.equals(expression, node.expression);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(expression);
     }
 }
