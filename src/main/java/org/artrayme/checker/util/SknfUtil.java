@@ -42,7 +42,7 @@ public class SknfUtil {
             values.put(String.valueOf(Constants.TRUE), true);
             values.put(String.valueOf(Constants.FALSE), false);
             boolean expressionResult = expression.getRoot().calcValue(values);
-            if (expressionResult)
+            if (!expressionResult)
                 result.add(values);
             states = generator.incrementAndGet();
         }
@@ -165,7 +165,7 @@ public class SknfUtil {
             return "("
                     + recursivelyConjunctionBracketsEncapsulation(part.subList(0, 1))
                     + Constants.CONJUNCTION
-                    + recursivelyConjunctionBracketsEncapsulation(part.subList(2, part.size()))
+                    + recursivelyConjunctionBracketsEncapsulation(part.subList(1, part.size()))
                     + ")";
         } else if (part.size() == 2) {
             return "("
@@ -199,7 +199,7 @@ public class SknfUtil {
     }
 
     private static String getAtomicPart(String expression, Boolean value) {
-        if (value)
+        if (!value)
             return expression;
         else
             return "(" + Constants.NEGATION + expression + ")";
