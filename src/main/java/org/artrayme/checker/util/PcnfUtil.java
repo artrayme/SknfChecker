@@ -23,36 +23,25 @@ import java.util.Optional;
 //Василевский Артемий Дмитриевич
 //Использованные источники:
 //1) Справочно система по дисциплине ЛОИС
-public class SknfUtil {
-    private SknfUtil() {
+public class PcnfUtil {
+    private PcnfUtil() {
     }
 
-    public static LETree createSknf(LETree expression) throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    public static LETree createPcnf(LETree expression) throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        if (!isPcnfSyntaxValid(expression.getRoot().getExpression()))
+            throw new InvalidSyntaxCharacterException("This syntax is invalid for PCMF", ' ');
         List<LENode> leaves = new ArrayList<>();
         recursivelyIteration(expression.getRoot(), leaves);
         leaves = leaves.stream().distinct().toList();
-        List<Map<String, Boolean>> result = new ArrayList<>();
-        StatesGenerator generator = new StatesGenerator();
-        List<Boolean> states = generator.getStates();
-        for (int i = 0; i < Math.pow(2, leaves.size()); i++) {
-            Map<String, Boolean> values = new HashMap<>();
-            for (int j = 0; j < leaves.size(); j++) {
-                values.put(leaves.get(j).getExpression(), states.get(j));
-            }
-            values.put(String.valueOf(Constants.TRUE), true);
-            values.put(String.valueOf(Constants.FALSE), false);
-            boolean expressionResult = expression.getRoot().calcValue(values);
-            if (!expressionResult)
-                result.add(values);
-            states = generator.incrementAndGet();
-        }
-        String resultExpression = generateSknfExpressionByTruthTable(result);
+        String resultExpression = generatePcnfExpressionByTruthTable(leaves, expression.getRoot());
         if (resultExpression.isEmpty())
             return new LETree(new LENode(""));
         return LEParser.valueOf(resultExpression);
     }
 
-    public static boolean isSknf(LETree expression) {
+    public static boolean isPcnf(LETree expression) {
+        if (!isPcnfSyntaxValid(expression.getRoot().getExpression()))
+            return false;
         List<LENode> conjunctionParts = getConjunctionParts(expression.getRoot());
         List<LENode> leaves = new ArrayList<>();
         recursivelyIteration(expression.getRoot(), leaves);
@@ -77,8 +66,13 @@ public class SknfUtil {
     }
 
     private static boolean checkIsDisjunctionFlat(LENode node) {
-        if (node.getLeftChild() == null || node.getRightChild() == null)
-            return true;
+        if (node.getLeftChild() == null) {
+            if (node.getRightChild() == null) {
+                return true;
+            } else {
+                return checkIsDisjunctionFlat(node.getRightChild());
+            }
+        }
         if (node.getLeftChild().getOperatorSymbol() == Constants.NEGATION
                 && node.getLeftChild().getRightChild().getOperatorSymbol() != '\u0000')
             return true;
@@ -114,6 +108,10 @@ public class SknfUtil {
     }
 
     private static void recAddLeavesForThisOperatorToList(List<LENode> nodes, LENode currentNode, Character operator) {
+        if (currentNode.getOperatorSymbol() != operator) {
+            nodes.add(currentNode);
+            return;
+        }
         if (currentNode.getLeftChild() != null) {
             if (currentNode.getLeftChild().getOperatorSymbol() == operator) {
                 recAddLeavesForThisOperatorToList(nodes, currentNode.getLeftChild(), operator);
@@ -145,18 +143,27 @@ public class SknfUtil {
             recursivelyIteration(node.getRightChild(), leaves);
     }
 
-    private static String generateSknfExpressionByTruthTable(List<Map<String, Boolean>> table) {
+    private static String generatePcnfExpressionByTruthTable(List<LENode> leaves, LENode root) {
         List<String> listOfConjunctionParts = new ArrayList<>();
-        for (Map<String, Boolean> truthExpression : table) {
-            List<Map.Entry<String, Boolean>> someLists = new ArrayList<>();
-            truthExpression.forEach((k, v) -> {
-                if (k.charAt(0) != Constants.TRUE && k.charAt(0) != Constants.FALSE)
-                    someLists.add(new AbstractMap.SimpleImmutableEntry<>(k, v));
-            });
-            String part = recursivelyDisjunctionBracketsEncapsulation(someLists);
-            listOfConjunctionParts.add(part);
+        StatesGenerator generator = new StatesGenerator();
+        List<Boolean> states = generator.getStates();
+        for (int i = 0; i < Math.pow(2, leaves.size()); i++) {
+            Map<String, Boolean> values = new HashMap<>();
+            for (int j = 0; j < leaves.size(); j++) {
+                values.put(leaves.get(j).getExpression(), states.get(j));
+            }
+            boolean expressionResult = root.calcValue(values);
+            if (!expressionResult) {
+                List<Map.Entry<String, Boolean>> someList = new ArrayList<>();
+                values.forEach((k, v) -> {
+                    if (k.charAt(0) != Constants.TRUE && k.charAt(0) != Constants.FALSE)
+                        someList.add(new AbstractMap.SimpleImmutableEntry<>(k, v));
+                });
+                String part = recursivelyDisjunctionBracketsEncapsulation(someList);
+                listOfConjunctionParts.add(part);
+            }
+            states = generator.incrementAndGet();
         }
-
         return recursivelyConjunctionBracketsEncapsulation(listOfConjunctionParts);
     }
 
@@ -179,21 +186,21 @@ public class SknfUtil {
         return "";
     }
 
-    private static String recursivelyDisjunctionBracketsEncapsulation(List<Map.Entry<String, Boolean>> stringBooleanMap) {
-        if (stringBooleanMap.size() > 2) {
+    private static String recursivelyDisjunctionBracketsEncapsulation(List<Map.Entry<String, Boolean>> values) {
+        if (values.size() > 2) {
             return "("
-                    + recursivelyDisjunctionBracketsEncapsulation(stringBooleanMap.subList(0, 1))
+                    + recursivelyDisjunctionBracketsEncapsulation(values.subList(0, 1))
                     + Constants.DISJUNCTION
-                    + recursivelyDisjunctionBracketsEncapsulation(stringBooleanMap.subList(1, stringBooleanMap.size()))
+                    + recursivelyDisjunctionBracketsEncapsulation(values.subList(1, values.size()))
                     + ")";
-        } else if (stringBooleanMap.size() == 2) {
+        } else if (values.size() == 2) {
             return "("
-                    + getAtomicPart(stringBooleanMap.get(0).getKey(), stringBooleanMap.get(0).getValue())
+                    + getAtomicPart(values.get(0).getKey(), values.get(0).getValue())
                     + Constants.DISJUNCTION
-                    + getAtomicPart(stringBooleanMap.get(1).getKey(), stringBooleanMap.get(1).getValue())
+                    + getAtomicPart(values.get(1).getKey(), values.get(1).getValue())
                     + ")";
-        } else if (stringBooleanMap.size() == 1) {
-            return getAtomicPart(stringBooleanMap.get(0).getKey(), stringBooleanMap.get(0).getValue());
+        } else if (values.size() == 1) {
+            return getAtomicPart(values.get(0).getKey(), values.get(0).getValue());
         }
         throw new RuntimeException("recursivelyBracketsEncapsulation -- something wrong");
     }
@@ -203,6 +210,10 @@ public class SknfUtil {
             return expression;
         else
             return "(" + Constants.NEGATION + expression + ")";
+    }
+
+    private static boolean isPcnfSyntaxValid(String expression) {
+        return !(expression.contains(String.valueOf(Constants.TRUE)) || expression.contains(String.valueOf(Constants.FALSE)));
     }
 
 }
