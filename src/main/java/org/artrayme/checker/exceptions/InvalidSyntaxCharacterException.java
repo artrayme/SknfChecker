@@ -8,8 +8,14 @@ package org.artrayme.checker.exceptions;
 //1) Справочно система по дисциплине ЛОИС
 public class InvalidSyntaxCharacterException extends Exception {
     private final char invalidCharacter;
+
     public InvalidSyntaxCharacterException(Character invalidChar) {
         super("You cannot use '" + invalidChar + "' character");
+        invalidCharacter = invalidChar;
+    }
+
+    public InvalidSyntaxCharacterException(String customMessage, Character invalidChar) {
+        super(customMessage);
         invalidCharacter = invalidChar;
     }
 
