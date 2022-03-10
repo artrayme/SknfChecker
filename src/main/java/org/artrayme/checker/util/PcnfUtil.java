@@ -9,13 +9,13 @@ import org.artrayme.checker.parser.LEParser;
 import org.artrayme.checker.tree.LENode;
 import org.artrayme.checker.tree.LETree;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 ////////////////////////////////////////////
 //Лабораторная работа №1-2 по дисциплине ЛОИС
@@ -146,24 +146,23 @@ public class PcnfUtil {
     private static String generatePcnfExpressionByTruthTable(List<LENode> leaves, LENode root) {
         List<String> listOfConjunctionParts = new ArrayList<>();
         StatesGenerator generator = new StatesGenerator();
-        List<Boolean> states = generator.getStates();
-        for (int i = 0; i < Math.pow(2, leaves.size()); i++) {
-            Map<String, Boolean> values = new HashMap<>();
-            for (int j = 0; j < leaves.size(); j++) {
-                values.put(leaves.get(j).getExpression(), states.get(j));
-            }
-            boolean expressionResult = root.calcValue(values);
-            if (!expressionResult) {
-                List<Map.Entry<String, Boolean>> someList = new ArrayList<>();
-                values.forEach((k, v) -> {
-                    if (k.charAt(0) != Constants.TRUE && k.charAt(0) != Constants.FALSE)
-                        someList.add(new AbstractMap.SimpleImmutableEntry<>(k, v));
-                });
-                String part = recursivelyDisjunctionBracketsEncapsulation(someList);
-                listOfConjunctionParts.add(part);
-            }
-            states = generator.incrementAndGet();
-        }
+        int conjunctionsCount = (int) Math.pow(2, leaves.size());
+
+        Stream.generate(generator::incrementAndGet)
+                .limit(conjunctionsCount)
+                .forEach(e -> {
+                    Map<String, Boolean> values = new HashMap<>();
+                    for (int j = 0; j < leaves.size(); j++) {
+                        values.put(leaves.get(j).getExpression(), e[j]);
+                    }
+                    boolean expressionResult = root.calcValue(values);
+                    if (!expressionResult) {
+                        String part = recursivelyDisjunctionBracketsEncapsulation(values);
+                        listOfConjunctionParts.add(part);
+                    }
+                })
+        ;
+
         return recursivelyConjunctionBracketsEncapsulation(listOfConjunctionParts);
     }
 
@@ -186,23 +185,19 @@ public class PcnfUtil {
         return "";
     }
 
-    private static String recursivelyDisjunctionBracketsEncapsulation(List<Map.Entry<String, Boolean>> values) {
-        if (values.size() > 2) {
-            return "("
-                    + recursivelyDisjunctionBracketsEncapsulation(values.subList(0, 1))
-                    + Constants.DISJUNCTION
-                    + recursivelyDisjunctionBracketsEncapsulation(values.subList(1, values.size()))
-                    + ")";
-        } else if (values.size() == 2) {
-            return "("
-                    + getAtomicPart(values.get(0).getKey(), values.get(0).getValue())
-                    + Constants.DISJUNCTION
-                    + getAtomicPart(values.get(1).getKey(), values.get(1).getValue())
-                    + ")";
-        } else if (values.size() == 1) {
-            return getAtomicPart(values.get(0).getKey(), values.get(0).getValue());
-        }
-        throw new RuntimeException("recursivelyBracketsEncapsulation -- something wrong");
+    private static String recursivelyDisjunctionBracketsEncapsulation(Map<String, Boolean> values) {
+        StringBuilder result = new StringBuilder("(");
+        values.forEach((k, v) -> {
+            result.append(getAtomicPart(k, v)).append(Constants.DISJUNCTION).append('(');
+        });
+        result.delete(result.length() - 2, result.length());
+        if (result.charAt(result.length() - 2) == '(')
+            result.delete(result.length() - 2, result.length() - 1);
+        else
+            result.delete(result.length() - 4, result.length() - 3);
+        result.append(")".repeat(Math.max(0, values.size() - 1)));
+        return result.toString();
+
     }
 
     private static String getAtomicPart(String expression, Boolean value) {
