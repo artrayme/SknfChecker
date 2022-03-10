@@ -33,8 +33,8 @@ class LEParserTest {
                 Arguments.of("(A∧B)", Optional.empty()),
                 Arguments.of("(A∧(B∧C))", Optional.empty()),
                 Arguments.of("(A∨B)", Optional.empty()),
-                Arguments.of("(¬C)", Optional.empty()),
-                Arguments.of(")(∧∨¬ABC)", Optional.empty()),
+                Arguments.of("(!C)", Optional.empty()),
+                Arguments.of(")(∧∨!ABC)", Optional.empty()),
                 Arguments.of("a", Optional.of('a')),
                 Arguments.of("(A∧b∧c)", Optional.of('b')),
                 Arguments.of("-", Optional.of('-'))
@@ -94,8 +94,8 @@ class LEParserTest {
 
     @ParameterizedTest
     @CsvSource({
-            "(C∨(¬A1234)),2",
-            "(C∨(!A)),!"
+            "(C∨(!A1234)),2",
+            "(C∨(A)¬),¬"
     })
     void invalidSyntaxCharacterExceptionTest(String expression, Character invalidSyntaxCharacter) {
         InvalidSyntaxCharacterException exception = assertThrows(InvalidSyntaxCharacterException.class, () -> {
@@ -106,14 +106,14 @@ class LEParserTest {
 
     @ParameterizedTest
     @CsvSource(value = {
-            "((A~¬A)∨(¬B)),¬A",
-            "((A¬A)∨(¬B)),¬A",
-            "(¬AA),AA",
+            "((A~!A)∨(!B)),!A",
+            "((A!A)∨(!B)),!A",
+            "(!AA),AA",
             "(A~A~A),A~A",
             "(~A),''",
             "(~),''",
-            "(¬),''",
-            "((A∨¬A)~(¬B)),¬A"
+            "(!),''",
+            "((A∨!A)~(!B)),!A"
     })
     void invalidAtomicExpressionSyntaxExceptionTest(String expression, String invalidAtomicExpression) {
         InvalidAtomicExpressionSyntaxException invalidOperatorException = assertThrows(InvalidAtomicExpressionSyntaxException.class, () -> {
@@ -125,10 +125,10 @@ class LEParserTest {
     @ParameterizedTest
     @CsvSource({
             "((A∨B)),(A∨B)",
-            "((A∧B)∧((C∨)¬D)),¬",
+            "((A∧B)∧((C∨)!D)),!",
             "((A~A~A)),(A~A~A)",
-            "((¬C)¬B),¬",
-            "((A∨B)∧(B∨(¬A)¬)),¬"
+            "((!C)!B),!",
+            "((A∨B)∧(B∨(!A)!)),!"
     })
     void invalidOperatorExceptionTest(String expression, String invalidOperator) {
         InvalidOperatorException invalidOperatorException = assertThrows(InvalidOperatorException.class, () -> {
@@ -141,19 +141,19 @@ class LEParserTest {
     @ValueSource(strings = {
             "(A∧B)",
             "(C∧(A∨B))",
-            "(C∨(¬1))",
-            "((A∨((¬B)∨C))∧(A∨(B∨C)))",
-            "(¬A)",
+            "(C∨(!1))",
+            "((A∨((!B)∨C))∧(A∨(B∨C)))",
+            "(!A)",
             "((A∧B)→B)",
             "A",
             "1",
             "0",
-            "(¬((A∧B)→B))",
-            "((¬((A∧B)→B))~B)",
-            "(((¬((A∧B)→1))~0)∧(¬A))",
+            "(!((A∧B)→B))",
+            "((!((A∧B)→B))~B)",
+            "(((!((A∧B)→1))~0)∧(!A))",
             "(A~A)",
             "(A→B)",
-            "(¬(¬A))",
+            "(!(!A))",
             "(A~(0~A))"
     })
     void validExpressions(String expression) {
@@ -165,7 +165,7 @@ class LEParserTest {
     @Test
     void testValueOf12() {
         assertThrows(InvalidBracketsException.class, () -> {
-            LEParser.valueOf("((¬()∨)∧())");
+            LEParser.valueOf("((!()∨)∧())");
         });
 
     }

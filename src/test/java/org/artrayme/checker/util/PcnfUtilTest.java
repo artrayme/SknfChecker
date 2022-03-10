@@ -5,11 +5,13 @@ import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.parser.LEParser;
+import org.artrayme.checker.tree.LENode;
 import org.artrayme.checker.tree.LETree;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,7 +32,7 @@ public class PcnfUtilTest {
     }
 
     @Test
-    void checkPcnf12() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    void checkPcnf12() {
         var exception = assertThrows(InvalidSyntaxCharacterException.class, () -> {
             LETree expression = LEParser.valueOf("(0∧((A∧C)∧(A∨(B∨D))))");
             PcnfUtil.createPcnf(expression);
@@ -39,7 +41,7 @@ public class PcnfUtilTest {
     }
 
     @Test
-    void checkPcnf13() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    void checkPcnf13() {
         var exception = assertThrows(InvalidSyntaxCharacterException.class, () -> {
             LETree expression = LEParser.valueOf("(1∧((A∧C)∧(A∨(B∨D))))");
             PcnfUtil.createPcnf(expression);
@@ -49,21 +51,21 @@ public class PcnfUtilTest {
 
     @Test
     void checkPcnf2() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-        LETree expression = LEParser.valueOf("((A∨((¬B)∨(C∨(¬D))))∧((A∨((¬B)∨(C∨D)))∧(A∨(B∨(C∨D)))))");
+        LETree expression = LEParser.valueOf("((A∨((!B)∨(C∨(!D))))∧((A∨((!B)∨(C∨D)))∧(A∨(B∨(C∨D)))))");
         boolean isPcnf = PcnfUtil.isPcnf(expression);
         assertTrue(isPcnf);
     }
 
     @Test
     void checkPcnf3() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-        LETree expression = LEParser.valueOf("((A∨((¬B)∨(C∨(¬D))))∧((A∨((¬B)∨(C∨D)))∧(A∨(B∨(D∨C)))))");
+        LETree expression = LEParser.valueOf("((A∨((!B)∨(C∨(!D))))∧((A∨((!B)∨(C∨D)))∧(A∨(B∨(D∨C)))))");
         boolean isPcnf = PcnfUtil.isPcnf(expression);
         assertTrue(isPcnf);
     }
 
     @Test
     void checkPcnf4() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-        LETree expression = LEParser.valueOf("(1∨((A∨((¬B)∨(C∨(¬D))))∧((A∨((¬B)∨(C∨D)))∧(A∨(B∨(D∨C))))))");
+        LETree expression = LEParser.valueOf("(1∨((A∨((!B)∨(C∨(!D))))∧((A∨((!B)∨(C∨D)))∧(A∨(B∨(D∨C))))))");
         boolean isPcnf = PcnfUtil.isPcnf(expression);
         assertFalse(isPcnf);
     }
@@ -85,9 +87,12 @@ public class PcnfUtilTest {
     @Test
     void checkPcnf14() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
         LETree expression = LEParser.valueOf("((A∧C)∧(A∨(B∨D)))");
+        LENode lastRoot = PcnfUtil.createPcnf(expression).getRoot();
         for (int i = 0; i < 5; i++) {
             expression = PcnfUtil.createPcnf(expression);
             assertTrue(PcnfUtil.isPcnf(expression));
+            assertEquals(expression.getRoot().getExpression().length(), lastRoot.getExpression().length());
+            lastRoot = expression.getRoot();
         }
     }
 
@@ -100,12 +105,30 @@ public class PcnfUtilTest {
         assertTrue(PcnfUtil.isPcnf(expression));
     }
 
+    //    @Test
+    //    void checkPcnf16() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    //        LETree expression = LEParser.valueOf("(A∧(B∧(C∧(D∧(E∧(F∧(G∧(H∧(I∧(J∧(K∧(L∧(M∧(N∧(O∧(P∧(Q∧(R∧(S∧(T∧(U∧(V∧(W∧(X∧(Y∧Z)))))))))))))))))))))))))");
+    //        expression = PcnfUtil.createPcnf(expression);
+    //        System.out.println(expression.getRoot().getExpression());
+    //        assertTrue(PcnfUtil.isPcnf(expression));
+    //    }
+
     @Test
     void checkPcnf17() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
-        LETree expression = LEParser.valueOf("((A∨((¬C)∨B))∧((¬C)∨(¬((¬A)∨B))))");
+        LETree expression = LEParser.valueOf("((A∨((!C)∨B))∧((!C)∨(!((!A)∨B))))");
         var result = PcnfUtil.isPcnf(expression);
         //        System.out.println(expression.getRoot().getExpression());
         assertFalse(result);
+    }
+
+    @Test
+    void checkPcnf18() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        LETree expression = LEParser.valueOf("((A∨(!A))∧B)");
+        expression = PcnfUtil.createPcnf(expression);
+        var result = PcnfUtil.isPcnf(expression);
+        System.out.println(expression.getRoot().getExpression());
+        assertTrue(result);
+        assertEquals("(((!A)∨B)∧(A∨B))", expression.getRoot().getExpression());
     }
 
 }
