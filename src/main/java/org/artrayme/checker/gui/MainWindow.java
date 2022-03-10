@@ -6,7 +6,7 @@ import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.parser.LEParser;
 import org.artrayme.checker.tree.LETree;
-import org.artrayme.checker.util.SknfUtil;
+import org.artrayme.checker.util.PcnfUtil;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -158,7 +158,7 @@ public class MainWindow extends JFrame {
             try {
                 LETree expressionTree = LEParser.valueOf(expressionField.getText());
                 setAllLEValidityStatus("Yes");
-                if (SknfUtil.isSknf(expressionTree)) {
+                if (PcnfUtil.isPcnf(expressionTree)) {
                     sknfValidityStatusLabel.setText("Yes");
                 } else {
                     sknfValidityStatusLabel.setText("No");
