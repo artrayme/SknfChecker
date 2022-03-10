@@ -4,6 +4,7 @@ import org.artrayme.checker.exceptions.InvalidAtomicExpressionSyntaxException;
 import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
+import org.artrayme.checker.parser.Constants;
 import org.artrayme.checker.parser.LEParser;
 import org.artrayme.checker.tree.LETree;
 import org.artrayme.checker.util.PcnfUtil;
@@ -29,6 +30,11 @@ import java.awt.HeadlessException;
 
 public class MainWindow extends JFrame {
 
+    public static final String GUI_CONJUNCTION = "/\\";
+    public static final String GUI_DISJUNCTION = "\\/";
+    public static final String GUI_NEGATION = "!";
+    public static final String GUI_EQUALITY = "~";
+    public static final String GUI_IMPLICATION = "->";
     private final JTextField expressionField = new JTextField();
     private final JPanel mainPanel = new JPanel(new BorderLayout());
     private final JPanel instrumentationPanel = new JPanel(new GridLayout(1, 2));
@@ -41,21 +47,24 @@ public class MainWindow extends JFrame {
     private final JButton implicationButton = new JButton("→");
 
     private final JPanel informationPanel = new JPanel(new GridLayout(5, 2));
-    private final JLabel bracketsValidityLabel = new JLabel("Are brackets valid: ");
+    private final JLabel bracketsValidityLabel = new JLabel("Brackets: ");
     private final JLabel bracketsValidityStatusLabel = new JLabel("");
-    private final JLabel syntaxValidityLabel = new JLabel("Is syntax valid: ");
+    private final JLabel syntaxValidityLabel = new JLabel("Syntax: ");
     private final JLabel syntaxValidityStatusLabel = new JLabel("");
-    private final JLabel atomicSyntaxValidityLabel = new JLabel("Is syntax of Atomic expressions valid: ");
+    private final JLabel atomicSyntaxValidityLabel = new JLabel("Atomic: ");
     private final JLabel atomicSyntaxValidityStatusLabel = new JLabel("");
-    private final JLabel operatorSyntaxValidityLabel = new JLabel("Are operators valid: ");
+    private final JLabel operatorSyntaxValidityLabel = new JLabel("Operators: ");
     private final JLabel operatorSyntaxValidityStatusLabel = new JLabel("");
-    private final JLabel sknfValidityLabel = new JLabel("Is SKNF valid: ");
+    private final JLabel sknfValidityLabel = new JLabel("PCNF: ");
     private final JLabel sknfValidityStatusLabel = new JLabel("");
+    private final Font mainFont;
+
+    private int offset = 0;
 
 
     public MainWindow() throws HeadlessException {
-        Font font1 = new Font("SansSerif", Font.BOLD, 20);
-        expressionField.setFont(font1);
+        mainFont = new Font("SansSerif", Font.BOLD, 20);
+        expressionField.setFont(mainFont);
         expressionField.getDocument().addDocumentListener(new ExpressionFieldListener());
         addButtons();
         addLabels();
@@ -68,45 +77,73 @@ public class MainWindow extends JFrame {
     }
 
     public static void main(String[] args) {
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        System.setProperty("swing.aatext", "true");
+
         MainWindow window = new MainWindow();
-        window.setBounds(700, 400, 600, 400);
+
+        window.setBounds(400, 400, 900, 400);
         window.setVisible(true);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
     private void addButtons() {
         conjunctionButton.addActionListener(e -> {
-            setSymbolToCurrentPosition('∧');
+            setSymbolToCurrentPosition(GUI_CONJUNCTION);
+            offset = 2;
         });
+        conjunctionButton.setFont(mainFont);
         disjunctionButton.addActionListener(e -> {
-            setSymbolToCurrentPosition('∨');
+            setSymbolToCurrentPosition(GUI_DISJUNCTION);
+            offset = 2;
         });
+        disjunctionButton.setFont(mainFont);
+
         negationButton.addActionListener(e -> {
-            setSymbolToCurrentPosition('¬');
+            setSymbolToCurrentPosition(GUI_NEGATION);
+            offset = 1;
         });
+        negationButton.setFont(mainFont);
+
         equalityButton.addActionListener(e -> {
-            setSymbolToCurrentPosition('~');
+            setSymbolToCurrentPosition(GUI_EQUALITY);
+            offset = 1;
         });
+        equalityButton.setFont(mainFont);
+
         implicationButton.addActionListener(e -> {
-            setSymbolToCurrentPosition('→');
+            setSymbolToCurrentPosition(GUI_IMPLICATION);
+            offset = 2;
         });
+        implicationButton.setFont(mainFont);
 
         buttonsPanel.add(conjunctionButton);
         buttonsPanel.add(disjunctionButton);
         buttonsPanel.add(negationButton);
-        //        buttonsPanel.add(equalityButton);
-        //        buttonsPanel.add(implicationButton);
+        buttonsPanel.add(equalityButton);
+        buttonsPanel.add(implicationButton);
     }
 
-    private void setSymbolToCurrentPosition(char symbol) {
+    private void setSymbolToCurrentPosition(String symbol) {
         StringBuilder text = new StringBuilder(expressionField.getText());
         int startPosition = expressionField.getCaretPosition();
         text.insert(startPosition, symbol);
         expressionField.setText(text.toString());
-        expressionField.setCaretPosition(startPosition + 1);
+        expressionField.setCaretPosition(startPosition + offset);
     }
 
     private void addLabels() {
+        bracketsValidityLabel.setFont(mainFont);
+        bracketsValidityStatusLabel.setFont(mainFont);
+        syntaxValidityLabel.setFont(mainFont);
+        syntaxValidityStatusLabel.setFont(mainFont);
+        atomicSyntaxValidityLabel.setFont(mainFont);
+        atomicSyntaxValidityStatusLabel.setFont(mainFont);
+        operatorSyntaxValidityLabel.setFont(mainFont);
+        operatorSyntaxValidityStatusLabel.setFont(mainFont);
+        sknfValidityLabel.setFont(mainFont);
+        sknfValidityStatusLabel.setFont(mainFont);
+
         informationPanel.add(bracketsValidityLabel);
         informationPanel.add(bracketsValidityStatusLabel);
         informationPanel.add(syntaxValidityLabel);
@@ -118,6 +155,12 @@ public class MainWindow extends JFrame {
         informationPanel.add(sknfValidityLabel);
         informationPanel.add(sknfValidityStatusLabel);
 
+    }
+
+    private String replaceOperators(String expression) {
+        return expression.replace(MainWindow.GUI_CONJUNCTION, String.valueOf(Constants.CONJUNCTION))
+                .replace(MainWindow.GUI_DISJUNCTION, String.valueOf(Constants.DISJUNCTION))
+                .replace(MainWindow.GUI_IMPLICATION, String.valueOf(Constants.IMPLICIT));
     }
 
     private class ExpressionFieldListener implements DocumentListener {
@@ -156,7 +199,7 @@ public class MainWindow extends JFrame {
             if (expressionField.getText().isEmpty())
                 return;
             try {
-                LETree expressionTree = LEParser.valueOf(expressionField.getText());
+                LETree expressionTree = LEParser.valueOf(replaceOperators(expressionField.getText()));
                 setAllLEValidityStatus("Yes");
                 if (PcnfUtil.isPcnf(expressionTree)) {
                     sknfValidityStatusLabel.setText("Yes");
