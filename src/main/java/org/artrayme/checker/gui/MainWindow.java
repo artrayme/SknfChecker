@@ -12,6 +12,7 @@ import org.artrayme.checker.util.PcnfUtil;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
@@ -45,6 +46,7 @@ public class MainWindow extends JFrame {
     private final JButton negationButton = new JButton("¬");
     private final JButton equalityButton = new JButton("~");
     private final JButton implicationButton = new JButton("→");
+    private final JButton createPcnfButton = new JButton("Create");
 
     private final JPanel informationPanel = new JPanel(new GridLayout(5, 2));
     private final JLabel bracketsValidityLabel = new JLabel("Brackets: ");
@@ -117,11 +119,22 @@ public class MainWindow extends JFrame {
         });
         implicationButton.setFont(mainFont);
 
+        createPcnfButton.addActionListener(e -> {
+            try {
+                JOptionPane.showMessageDialog(this, replaceOperatorsToGui(
+                        PcnfUtil.createPcnf(LEParser.valueOf(replaceOperatorsToEngine(expressionField.getText()))).getRoot().getExpression()));
+            } catch (InvalidOperatorException | InvalidSyntaxCharacterException | InvalidAtomicExpressionSyntaxException | InvalidBracketsException ex) {
+            }
+        });
+        createPcnfButton.setEnabled(false);
+        createPcnfButton.setFont(mainFont);
+
         buttonsPanel.add(conjunctionButton);
         buttonsPanel.add(disjunctionButton);
         buttonsPanel.add(negationButton);
         buttonsPanel.add(equalityButton);
         buttonsPanel.add(implicationButton);
+        buttonsPanel.add(createPcnfButton);
     }
 
     private void setSymbolToCurrentPosition(String symbol) {
@@ -157,10 +170,16 @@ public class MainWindow extends JFrame {
 
     }
 
-    private String replaceOperators(String expression) {
+    private String replaceOperatorsToEngine(String expression) {
         return expression.replace(MainWindow.GUI_CONJUNCTION, String.valueOf(Constants.CONJUNCTION))
                 .replace(MainWindow.GUI_DISJUNCTION, String.valueOf(Constants.DISJUNCTION))
                 .replace(MainWindow.GUI_IMPLICATION, String.valueOf(Constants.IMPLICIT));
+    }
+
+    private String replaceOperatorsToGui(String expression) {
+        return expression.replace(String.valueOf(Constants.CONJUNCTION), MainWindow.GUI_CONJUNCTION)
+                .replace(String.valueOf(Constants.DISJUNCTION), MainWindow.GUI_DISJUNCTION)
+                .replace(String.valueOf(Constants.IMPLICIT), MainWindow.GUI_IMPLICATION);
     }
 
     private class ExpressionFieldListener implements DocumentListener {
@@ -185,6 +204,8 @@ public class MainWindow extends JFrame {
             atomicSyntaxValidityStatusLabel.setText("");
             operatorSyntaxValidityStatusLabel.setText("");
             sknfValidityStatusLabel.setText("");
+            createPcnfButton.setEnabled(false);
+
         }
 
         private void setAllLEValidityStatus(String status) {
@@ -192,6 +213,8 @@ public class MainWindow extends JFrame {
             syntaxValidityStatusLabel.setText(status);
             atomicSyntaxValidityStatusLabel.setText(status);
             operatorSyntaxValidityStatusLabel.setText(status);
+            createPcnfButton.setEnabled(true);
+
         }
 
         private void checkExpression() {
@@ -199,8 +222,9 @@ public class MainWindow extends JFrame {
             if (expressionField.getText().isEmpty())
                 return;
             try {
-                LETree expressionTree = LEParser.valueOf(replaceOperators(expressionField.getText()));
+                LETree expressionTree = LEParser.valueOf(replaceOperatorsToEngine(expressionField.getText()));
                 setAllLEValidityStatus("Yes");
+
                 if (PcnfUtil.isPcnf(expressionTree)) {
                     sknfValidityStatusLabel.setText("Yes");
                 } else {

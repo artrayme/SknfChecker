@@ -28,6 +28,8 @@ public class PcnfUtil {
     }
 
     public static LETree createPcnf(LETree expression) throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        if (isPcnf(expression))
+            return expression;
         if (!isPcnfSyntaxValid(expression.getRoot().getExpression()))
             throw new InvalidSyntaxCharacterException("This syntax is invalid for PCMF", ' ');
         List<LENode> leaves = new ArrayList<>();
