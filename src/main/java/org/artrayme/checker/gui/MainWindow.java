@@ -122,7 +122,7 @@ public class MainWindow extends JFrame {
         createPcnfButton.addActionListener(e -> {
             try {
                 JOptionPane.showMessageDialog(this, replaceOperatorsToGui(
-                        PcnfUtil.createPcnf(LEParser.valueOf(replaceOperatorsToEngine(expressionField.getText()))).getRoot().getExpression()));
+                        PcnfUtil.createPcnf(LEParser.valueOf(replaceOperatorsToEngine(expressionField.getText())))));
             } catch (InvalidOperatorException | InvalidSyntaxCharacterException | InvalidAtomicExpressionSyntaxException | InvalidBracketsException ex) {
             }
         });

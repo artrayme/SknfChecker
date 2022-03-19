@@ -5,7 +5,6 @@ import org.artrayme.checker.exceptions.InvalidBracketsException;
 import org.artrayme.checker.exceptions.InvalidOperatorException;
 import org.artrayme.checker.exceptions.InvalidSyntaxCharacterException;
 import org.artrayme.checker.parser.Constants;
-import org.artrayme.checker.parser.LEParser;
 import org.artrayme.checker.tree.LENode;
 import org.artrayme.checker.tree.LETree;
 
@@ -27,30 +26,32 @@ public class PcnfUtil {
     private PcnfUtil() {
     }
 
-    public static LETree createPcnf(LETree expression) throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+    public static String createPcnf(LETree expression) throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
         if (isPcnf(expression))
-            return expression;
+            return expression.getRoot().getExpression();
         if (!isPcnfSyntaxValid(expression.getRoot().getExpression()))
             throw new InvalidSyntaxCharacterException("This syntax is invalid for PCMF", ' ');
         List<LENode> leaves = new ArrayList<>();
-        recursivelyIteration(expression.getRoot(), leaves);
+        getExpressionLists(expression.getRoot(), leaves);
         leaves = leaves.stream().distinct().toList();
         String resultExpression = generatePcnfExpressionByTruthTable(leaves, expression.getRoot());
         if (resultExpression.isEmpty())
-            return new LETree(new LENode(""));
-        return LEParser.valueOf(resultExpression);
+            return "";
+
+        return resultExpression;
     }
 
     public static boolean isPcnf(LETree expression) {
-        if (!isPcnfSyntaxValid(expression.getRoot().getExpression()))
+        boolean isSyntaxValid = isPcnfSyntaxValid(expression.getRoot().getExpression());
+        if (!isSyntaxValid)
             return false;
         List<LENode> conjunctionParts = getConjunctionParts(expression.getRoot());
         List<LENode> leaves = new ArrayList<>();
-        recursivelyIteration(expression.getRoot(), leaves);
+        getExpressionLists(expression.getRoot(), leaves);
         leaves = leaves.stream().distinct().toList();
         for (LENode part : conjunctionParts) {
             List<LENode> partLeaves = new ArrayList<>();
-            recursivelyIteration(part, partLeaves);
+            getExpressionLists(part, partLeaves);
             if (leaves.size() != partLeaves.size())
                 return false;
         }
@@ -58,7 +59,8 @@ public class PcnfUtil {
         for (int i = 0; i < conjunctionParts.size(); i++) {
             List<LENode> currentDisjunctionPart = getDisjunctionParts(conjunctionParts.get(i));
             for (LENode node : currentDisjunctionPart) {
-                if (!checkIsDisjunctionFlat(node))
+                boolean isFlat = checkIsDisjunctionFlat(node);
+                if (!isFlat)
                     return false;
             }
 
@@ -131,7 +133,7 @@ public class PcnfUtil {
         }
     }
 
-    private static void recursivelyIteration(LENode node, Collection<LENode> leaves) {
+    private static void getExpressionLists(LENode node, Collection<LENode> leaves) {
         if (node.getLeftChild() == null
                 && node.getRightChild() == null
                 && !node.getExpression().isEmpty()
@@ -140,15 +142,15 @@ public class PcnfUtil {
             leaves.add(node);
 
         if (node.getLeftChild() != null)
-            recursivelyIteration(node.getLeftChild(), leaves);
+            getExpressionLists(node.getLeftChild(), leaves);
         if (node.getRightChild() != null)
-            recursivelyIteration(node.getRightChild(), leaves);
+            getExpressionLists(node.getRightChild(), leaves);
     }
 
     private static String generatePcnfExpressionByTruthTable(List<LENode> leaves, LENode root) {
-        List<String> listOfConjunctionParts = new ArrayList<>();
         StatesGenerator generator = new StatesGenerator();
         int conjunctionsCount = (int) Math.pow(2, leaves.size());
+        StringBuilder result = new StringBuilder("(");
 
         Stream.generate(generator::incrementAndGet)
                 .limit(conjunctionsCount)
@@ -159,35 +161,27 @@ public class PcnfUtil {
                     }
                     boolean expressionResult = root.calcValue(values);
                     if (!expressionResult) {
-                        String part = recursivelyDisjunctionBracketsEncapsulation(values);
-                        listOfConjunctionParts.add(part);
+                        result.append(disjunctionBracketsEncapsulation(values));
+                        result.append(Constants.CONJUNCTION);
+                        result.append('(');
                     }
-                })
-        ;
-
-        return recursivelyConjunctionBracketsEncapsulation(listOfConjunctionParts);
+                });
+        result.delete(result.length() - 2, result.length());
+        int bracketsCount = 0;
+        int index = result.length() - 1;
+        do {
+            if (result.charAt(index) == Constants.CLOSE_BRACKET)
+                bracketsCount--;
+            if (result.charAt(index) == Constants.OPEN_BRACKET)
+                bracketsCount++;
+            index--;
+        } while (bracketsCount != 0);
+        result.delete(index, index + 1);
+        result.append(")".repeat(Math.max(0, conjunctionsCount - 2)));
+        return result.toString();
     }
 
-    private static String recursivelyConjunctionBracketsEncapsulation(List<String> part) {
-        if (part.size() > 2) {
-            return "("
-                    + recursivelyConjunctionBracketsEncapsulation(part.subList(0, 1))
-                    + Constants.CONJUNCTION
-                    + recursivelyConjunctionBracketsEncapsulation(part.subList(1, part.size()))
-                    + ")";
-        } else if (part.size() == 2) {
-            return "("
-                    + part.get(0)
-                    + Constants.CONJUNCTION
-                    + part.get(1)
-                    + ")";
-        } else if (part.size() == 1) {
-            return part.get(0);
-        }
-        return "";
-    }
-
-    private static String recursivelyDisjunctionBracketsEncapsulation(Map<String, Boolean> values) {
+    private static String disjunctionBracketsEncapsulation(Map<String, Boolean> values) {
         StringBuilder result = new StringBuilder("(");
         values.forEach((k, v) -> {
             result.append(getAtomicPart(k, v)).append(Constants.DISJUNCTION).append('(');
@@ -210,7 +204,20 @@ public class PcnfUtil {
     }
 
     private static boolean isPcnfSyntaxValid(String expression) {
-        return !(expression.contains(String.valueOf(Constants.TRUE)) || expression.contains(String.valueOf(Constants.FALSE)));
+        boolean result;
+        boolean res;
+        if (expression.contains(String.valueOf(Constants.TRUE))) {
+            res = true;
+        } else if (expression.contains(String.valueOf(Constants.FALSE))) {
+            res = true;
+        } else {
+            res = false;
+        }
+        if (!res) {
+            result = true;
+        } else
+            result = false;
+        return result;
     }
 
 }

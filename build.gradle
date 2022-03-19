@@ -22,6 +22,7 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    maxHeapSize = '16G'
 }
 
 jacocoTestReport {
