@@ -107,6 +107,12 @@ public class PcnfUtilTest {
     }
 
     @Test
+    void checkPcnf19() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
+        LETree expression = LEParser.valueOf("(A∧(B∧(C∧(D∧(E∧(F∧(G∧(H∧(I∧(J∧(K∧(L∧(M∧(N∧(O∧(P∧(Q∧(R∧S))))))))))))))))))");
+        System.out.println(PcnfUtil.createPcnf(expression).length());
+    }
+
+    @Test
     void checkPcnf17() throws InvalidOperatorException, InvalidSyntaxCharacterException, InvalidAtomicExpressionSyntaxException, InvalidBracketsException {
         LETree expression = LEParser.valueOf("((A∨((!C)∨B))∧((!C)∨(!((!A)∨B))))");
         var result = PcnfUtil.isPcnf(expression);
